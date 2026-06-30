@@ -56,6 +56,31 @@ export const LocationSearchPage: React.FC = () => {
     fetchHistory();
   }, []);
 
+  // Debounced autocomplete for location search queries
+  useEffect(() => {
+    if (searchQuery.trim().length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    const delayDebounceFn = setTimeout(async () => {
+      setSearching(true);
+      setErrorMsg(null);
+      try {
+        const response = await axios.get(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5`
+        );
+        setSearchResults(response.data);
+      } catch (err) {
+        console.error('Nominatim query error:', err);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery]);
+
   const fetchHistory = async () => {
     try {
       const res = await api.get('/risk/history');
@@ -161,38 +186,40 @@ export const LocationSearchPage: React.FC = () => {
               <span>1. Target Location</span>
             </h3>
 
-            {/* City Query Input */}
-            <form onSubmit={handleLocationSearch} className="flex gap-2 relative">
-              <input
-                type="text"
-                placeholder="Query city or place..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 px-3 py-2 bg-slate-900 border border-slate-800 focus:border-red-500 focus:outline-none text-xs text-slate-100 rounded-xl"
-              />
-              <button
-                type="submit"
-                disabled={searching}
-                className="px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
-              >
-                {searching ? <Loader size={12} className="animate-spin" /> : 'Search'}
-              </button>
-            </form>
+            {/* Search Input and Dropdown */}
+            <div className="relative">
+              <form onSubmit={handleLocationSearch} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Query city or place..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 px-3 py-2 bg-slate-900 border border-slate-800 focus:border-red-500 focus:outline-none text-xs text-slate-100 rounded-xl"
+                />
+                <button
+                  type="submit"
+                  disabled={searching}
+                  className="px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                >
+                  {searching ? <Loader size={12} className="animate-spin" /> : 'Search'}
+                </button>
+              </form>
 
-            {/* Search Results Dropdown */}
-            {searchResults.length > 0 && (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-2 max-h-40 overflow-y-auto space-y-1 divide-y divide-slate-800/50">
-                {searchResults.map((item, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => selectSearchResult(item)}
-                    className="w-full text-left p-2 hover:bg-slate-800 text-[10px] text-slate-350 truncate block cursor-pointer transition-colors"
-                  >
-                    {item.display_name}
-                  </button>
-                ))}
-              </div>
-            )}
+              {/* Search Results Dropdown (Floated) */}
+              {searchResults.length > 0 && (
+                <div className="absolute left-0 right-0 mt-1 z-50 bg-slate-900 border border-slate-800 rounded-xl p-2 max-h-48 overflow-y-auto space-y-1 divide-y divide-slate-800/50 shadow-2xl">
+                  {searchResults.map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => selectSearchResult(item)}
+                      className="w-full text-left p-2 hover:bg-slate-800 text-[10px] text-slate-350 truncate block cursor-pointer transition-colors"
+                    >
+                      {item.display_name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Manual Lat/Lon Override */}
             <div className="grid grid-cols-2 gap-3 pt-2">
