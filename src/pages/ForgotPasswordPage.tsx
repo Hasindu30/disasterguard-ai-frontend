@@ -6,7 +6,8 @@ import { Mail, ShieldCheck, ArrowLeft, CheckCircle, AlertCircle, Send, Key, Lock
 
 type Step = 'email' | 'sent' | 'temp-verify' | 'reset-success';
 
-const API_URL = 'http://localhost:5000/api/auth';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = `${BACKEND_URL}/api/auth`;
 
 export const ForgotPasswordPage: React.FC = () => {
   const [step, setStep]   = useState<Step>('email');
